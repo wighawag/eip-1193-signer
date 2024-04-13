@@ -10,6 +10,7 @@ import {
 	EIP1193AccountsRequest,
 	EIP1193Accounts,
 } from 'eip-1193';
+import { TypedDataDefinition } from 'viem';
 import {privateKeyToAccount, mnemonicToAccount, LocalAccount} from 'viem/accounts';
 
 type SignatureRequest =
@@ -127,11 +128,11 @@ export class EIP1193LocalSigner implements EIP1193SignerProvider {
 		} else if (args.method === 'eth_signTypedData') {
 			const [address, message] = args.params;
 			const account = getAccount(address);
-			return account.signTypedData(message as any);
+			return account.signTypedData(message as TypedDataDefinition<Record<string, unknown>, any>);
 		} else if (args.method === 'eth_signTypedData_v4') {
 			const [address, message] = args.params;
 			const account = getAccount(address);
-			return account.signTypedData(message as any);
+			return account.signTypedData(message as TypedDataDefinition<Record<string, unknown>, any>);
 		} else if (args.method === 'personal_sign') {
 			const [message, address] = args.params; // reverse
 			const account = getAccount(address);
