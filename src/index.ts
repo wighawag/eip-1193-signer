@@ -193,11 +193,12 @@ export function wrapProviderWithMultipleSigners<T extends EIP1193ProviderWithout
 	};
 }
 
+
 export function wrapProviderWithLocalSigner<T extends EIP1193ProviderWithoutEvents>(
 	provider: T,
-	prv: `0x${string}` | {mnemonic: string; num: number}
+	prv: `0x${string}` | {mnemonic: string; num: number} | EIP1193LocalSigner
 ): T {
-	const signer = new EIP1193LocalSigner(prv);
+	const signer = prv instanceof EIP1193LocalSigner ? prv : new EIP1193LocalSigner(prv);
 	function request(args: EIP1193GenericRequest): Promise<any> {
 		if (signingRequests.indexOf(args.method) >= 0) {
 			return signer.request(args as any);
