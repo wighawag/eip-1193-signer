@@ -200,6 +200,13 @@ export function wrapProviderWithLocalSigner<T extends EIP1193ProviderWithoutEven
 ): T {
 	const signer = prv instanceof EIP1193LocalSigner ? prv : new EIP1193LocalSigner(prv);
 	function request(args: EIP1193GenericRequest): Promise<any> {
+
+		if (args.method === 'eth_accounts') {
+			return Promise.resolve(signer.addresses);
+		}
+		if (args.method === 'eth_requestAccounts') {
+			return Promise.resolve(signer.addresses);
+		}
 		if (signingRequests.indexOf(args.method) >= 0) {
 			return signer.request(args as any);
 		}
