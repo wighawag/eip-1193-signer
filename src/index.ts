@@ -207,6 +207,13 @@ export function wrapProviderWithLocalSigner<T extends EIP1193ProviderWithoutEven
 		if (args.method === 'eth_requestAccounts') {
 			return Promise.resolve(signer.addresses);
 		}
+
+		if (args.method === 'eth_sendTransaction') {
+			return signer.request({method: 'eth_signTransaction', params: args.params as any}).then( v => {
+				return provider.request({method: 'eth_sendRawTransaction', params: [v]});
+			})
+		}
+
 		if (signingRequests.indexOf(args.method) >= 0) {
 			return signer.request(args as any);
 		}
