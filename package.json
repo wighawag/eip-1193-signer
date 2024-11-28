@@ -1,6 +1,6 @@
 {
 	"name": "eip-1193-signer",
-	"version": "0.0.5",
+	"version": "0.1.0",
 	"description": "generic signer for eip-1193 providers",
 	"publishConfig": {
 		"access": "public"
@@ -20,13 +20,13 @@
 		}
 	},
 	"devDependencies": {
-		"eip-1193": "^0.5.0",
-		"pkgroll": "^2.0.2",
-		"rimraf": "^5.0.5",
-		"typescript": "^5.4.5"
+		"eip-1193": "^0.6.1",
+		"pkgroll": "^2.5.1",
+		"rimraf": "^6.0.1",
+		"typescript": "^5.7.2"
 	},
 	"dependencies": {
-		"viem": "^2.9.16"
+		"viem": "^2.21.51"
 	},
 	"scripts": {
 		"build": "rimraf dist && pkgroll --sourcemap",

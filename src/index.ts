@@ -1,24 +1,6 @@
-import {
-	EIP1193LegacySignRequest,
-	EIP1193PTypedSignRequest,
-	EIP1193PTypedSignv4Request,
-	EIP1193PersonalSignRequest,
-	EIP1193SignTransactionRequest,
-	EIP1193SignerProvider,
-	EIP1193ProviderWithoutEvents,
-	EIP1193GenericRequest,
-	EIP1193AccountsRequest,
-	EIP1193Accounts,
-} from 'eip-1193';
-import { TypedDataDefinition } from 'viem';
+import {EIP1193SignerProvider, EIP1193ProviderWithoutEvents, EIP1193GenericRequest, RPCMethods} from 'eip-1193';
+import {TypedDataDefinition} from 'viem';
 import {privateKeyToAccount, mnemonicToAccount, LocalAccount} from 'viem/accounts';
-
-type SignatureRequest =
-	| EIP1193LegacySignRequest
-	| EIP1193SignTransactionRequest
-	| EIP1193PersonalSignRequest
-	| EIP1193PTypedSignv4Request
-	| EIP1193PTypedSignRequest;
 
 function tobn(v?: `0x${string}`): bigint | undefined {
 	return v ? BigInt(v) : undefined;
@@ -30,6 +12,17 @@ function ton(v: `0x${string}` | undefined): number | undefined {
 function tonf(v: `0x${string}`): number {
 	return parseInt(v.slice(2), 16);
 }
+
+export type RequestType<Method extends string> = {method: Method; params: RPCMethods[Method]['params']};
+export type ResultType<Method extends string> = RPCMethods[Method]['result'];
+
+type SignerMethodsList =
+	| 'eth_accounts'
+	| 'eth_sign'
+	| 'eth_signTransaction'
+	| 'personal_sign'
+	| 'eth_signTypedData_v4'
+	| 'eth_signTypedData';
 
 export class EIP1193LocalSigner implements EIP1193SignerProvider {
 	private accounts: {[address: `0x${string}`]: LocalAccount<'hd' | 'privateKey'>} = {};
@@ -48,14 +41,7 @@ export class EIP1193LocalSigner implements EIP1193SignerProvider {
 			}
 		}
 	}
-
-	request(args: EIP1193AccountsRequest): Promise<EIP1193Accounts>;
-	request(args: EIP1193LegacySignRequest): Promise<`0x${string}`>;
-	request(args: EIP1193SignTransactionRequest): Promise<`0x${string}`>;
-	request(args: EIP1193PersonalSignRequest): Promise<`0x${string}`>;
-	request(args: EIP1193PTypedSignv4Request): Promise<`0x${string}`>;
-	request(args: EIP1193PTypedSignRequest): Promise<`0x${string}`>;
-	async request(args: SignatureRequest | EIP1193AccountsRequest): Promise<`0x${string}` | EIP1193Accounts> {
+	async request(args: any): ReturnType<EIP1193SignerProvider['request']> {
 		const getAccount = (address: `0x${string}`) => {
 			const account = this.accounts[address.toLowerCase() as `0x${string}`];
 			if (!account) {
@@ -108,7 +94,7 @@ export class EIP1193LocalSigner implements EIP1193SignerProvider {
 				});
 			} else if (txData.type === '0x2') {
 				if (!txData.chainId) {
-					throw new Error(`type 0x1 tx need to have the chainId specified`);
+					throw new Error(`type 0x2 tx need to have the chainId specified`);
 				}
 				return account.signTransaction({
 					type: 'eip1559',
@@ -161,10 +147,10 @@ export function wrapProviderWithMultipleSigners<T extends EIP1193ProviderWithout
 
 	function request(args: EIP1193GenericRequest): Promise<any> {
 		if (signingRequests.indexOf(args.method) >= 0) {
-			const request = args as SignatureRequest;
+			const request = args as RequestType<SignerMethodsList>;
 			let address: `0x${string}`;
 			if (typeof request.params[0] === 'string') {
-				address = request.params[0];
+				address = request.params[0] as `0x${string}`;
 			} else if ('from' in request.params[0]) {
 				address = request.params[0].from;
 			} else {
@@ -176,7 +162,7 @@ export function wrapProviderWithMultipleSigners<T extends EIP1193ProviderWithout
 			}
 			return signer.request(request as any);
 		}
-		return provider.request(args);
+		return provider.request(args as any);
 	}
 	const newProvider = new Proxy(provider, {
 		get(target, param, receiver) {
@@ -193,14 +179,12 @@ export function wrapProviderWithMultipleSigners<T extends EIP1193ProviderWithout
 	};
 }
 
-
 export function wrapProviderWithLocalSigner<T extends EIP1193ProviderWithoutEvents>(
 	provider: T,
 	prv: `0x${string}` | {mnemonic: string; num: number} | EIP1193LocalSigner
 ): T {
 	const signer = prv instanceof EIP1193LocalSigner ? prv : new EIP1193LocalSigner(prv);
 	function request(args: EIP1193GenericRequest): Promise<any> {
-
 		if (args.method === 'eth_accounts') {
 			return Promise.resolve(signer.addresses);
 		}
@@ -209,15 +193,15 @@ export function wrapProviderWithLocalSigner<T extends EIP1193ProviderWithoutEven
 		}
 
 		if (args.method === 'eth_sendTransaction') {
-			return signer.request({method: 'eth_signTransaction', params: args.params as any}).then( v => {
+			return signer.request({method: 'eth_signTransaction', params: args.params as any}).then((v) => {
 				return provider.request({method: 'eth_sendRawTransaction', params: [v]});
-			})
+			});
 		}
 
 		if (signingRequests.indexOf(args.method) >= 0) {
 			return signer.request(args as any);
 		}
-		return provider.request(args);
+		return provider.request(args as any);
 	}
 	return new Proxy(provider, {
 		get(target, param, receiver) {
