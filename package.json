@@ -20,13 +20,13 @@
 		}
 	},
 	"devDependencies": {
-		"eip-1193": "^0.6.1",
-		"pkgroll": "^2.5.1",
+		"eip-1193": "^0.6.2",
+		"pkgroll": "^2.11.2",
 		"rimraf": "^6.0.1",
-		"typescript": "^5.7.2"
+		"typescript": "^5.8.2"
 	},
 	"dependencies": {
-		"viem": "^2.21.51"
+		"viem": "^2.23.12"
 	},
 	"scripts": {
 		"build": "rimraf dist && pkgroll --sourcemap",
