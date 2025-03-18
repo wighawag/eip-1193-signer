@@ -1,6 +1,6 @@
 {
 	"name": "eip-1193-signer",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "generic signer for eip-1193 providers",
 	"publishConfig": {
 		"access": "public"
