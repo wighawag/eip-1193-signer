@@ -42,8 +42,7 @@
 				"types": "./dist/index.d.ts",
 				"default": "./dist/index.mjs"
 			}
-		},
-		"./package.json": "./package.json"
+		}
 	},
 	"devDependencies": {
 		"eip-1193": "^0.6.2",
