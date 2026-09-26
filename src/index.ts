@@ -70,6 +70,10 @@ export class EIP1193LocalSigner implements EIP1193SignerProvider {
 			if (!txData.type || txData.type === '0x0') {
 				return account.signTransaction({
 					type: 'legacy',
+					// With chainId, viem signs with EIP-155 replay protection (v = chainId * 2 + 35/36).
+					// Without it, a legacy tx is still valid and may be wanted on purpose, so we sign
+					// an unprotected (pre-EIP-155, v = 27/28) tx instead of throwing.
+					...(txData.chainId ? {chainId: tonf(txData.chainId)} : {}),
 					data: txData.data,
 					gas: tobn(txData.gas),
 					gasPrice: tobn(txData.gasPrice),

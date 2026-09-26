@@ -1,23 +1,49 @@
 {
 	"name": "eip-1193-signer",
-	"version": "0.1.1",
+	"version": "0.2.0",
 	"description": "generic signer for eip-1193 providers",
+	"keywords": [
+		"eip-1193",
+		"ethereum",
+		"signer",
+		"provider",
+		"private-key",
+		"mnemonic",
+		"viem"
+	],
+	"author": "wighawag <wighawag@gmail.com>",
+	"homepage": "https://github.com/wighawag/eip-1193-signer#readme",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/wighawag/eip-1193-signer.git"
+	},
+	"bugs": {
+		"url": "https://github.com/wighawag/eip-1193-signer/issues"
+	},
+	"files": [
+		"dist",
+		"src"
+	],
 	"publishConfig": {
 		"access": "public"
 	},
+	"license": "MIT",
 	"type": "module",
 	"main": "dist/index.cjs",
 	"module": "dist/index.mjs",
 	"types": "dist/index.d.ts",
-	".": {
-		"require": {
-			"types": "./dist/index.d.ts",
-			"default": "./dist/index.cjs"
+	"exports": {
+		".": {
+			"require": {
+				"types": "./dist/index.d.cts",
+				"default": "./dist/index.cjs"
+			},
+			"import": {
+				"types": "./dist/index.d.ts",
+				"default": "./dist/index.mjs"
+			}
 		},
-		"import": {
-			"types": "./dist/index.d.ts",
-			"default": "./dist/index.mjs"
-		}
+		"./package.json": "./package.json"
 	},
 	"devDependencies": {
 		"eip-1193": "^0.6.2",
