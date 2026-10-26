@@ -1,4 +1,4 @@
-import {EIP1193SignerProvider, EIP1193ProviderWithoutEvents, EIP1193GenericRequest, RPCMethods} from 'eip-1193';
+import type {EIP1193SignerProvider, EIP1193GenericRequest, RPCMethods, RequestRPC, WriteMethods} from 'eip-1193';
 import {TypedDataDefinition} from 'viem';
 import {privateKeyToAccount, mnemonicToAccount, LocalAccount} from 'viem/accounts';
 
@@ -141,7 +141,9 @@ const signingRequests = [
 	'eth_signTypedData',
 ];
 
-export function wrapProviderWithMultipleSigners<T extends EIP1193ProviderWithoutEvents>(
+// The provider is the fallback signer for unregistered accounts, so it must serve the signer methods.
+// Both the wallet surface and the node surfaces do.
+export function wrapProviderWithMultipleSigners<T extends EIP1193SignerProvider>(
 	provider: T
 ): {provider: T; registerAccount(address: `0x${string}`, signer: EIP1193SignerProvider): void} {
 	const accounts: {[address: `0x${string}`]: EIP1193SignerProvider} = {};
@@ -183,7 +185,9 @@ export function wrapProviderWithMultipleSigners<T extends EIP1193ProviderWithout
 	};
 }
 
-export function wrapProviderWithLocalSigner<T extends EIP1193ProviderWithoutEvents>(
+// Signing happens locally, so the provider only has to broadcast: anything serving eth_sendRawTransaction
+// works, whether a wallet, a JSON-RPC node or an HTTP node.
+export function wrapProviderWithLocalSigner<T extends RequestRPC<WriteMethods>>(
 	provider: T,
 	prv: `0x${string}` | {mnemonic: string; num: number} | EIP1193LocalSigner
 ): T {
