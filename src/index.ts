@@ -16,14 +16,6 @@ function tonf(v: `0x${string}`): number {
 export type RequestType<Method extends string> = {method: Method; params: RPCMethods[Method]['params']};
 export type ResultType<Method extends string> = RPCMethods[Method]['result'];
 
-type SignerMethodsList =
-	| 'eth_accounts'
-	| 'eth_sign'
-	| 'eth_signTransaction'
-	| 'personal_sign'
-	| 'eth_signTypedData_v4'
-	| 'eth_signTypedData';
-
 export class EIP1193LocalSigner implements EIP1193SignerProvider {
 	private accounts: {[address: `0x${string}`]: LocalAccount<'hd' | 'privateKey'>} = {};
 	public readonly addresses: `0x${string}`[] = [];
@@ -116,9 +108,10 @@ export class EIP1193LocalSigner implements EIP1193SignerProvider {
 				throw new Error(`unlnown transaction type: ${txData.type}`);
 			}
 		} else if (args.method === 'eth_signTypedData') {
-			const [address, message] = args.params;
-			const account = getAccount(address);
-			return account.signTypedData(message as TypedDataDefinition<Record<string, unknown>, any>);
+			// eth_signTypedData is v1: [typedData, address] with a flat {name, type, value}[] payload and
+			// its own hashing scheme, which viem does not implement. Refuse it explicitly rather than
+			// fall through to the generic error, so the caller knows to use v4.
+			throw new Error(`eth_signTypedData (v1) is not supported by the local signer, use eth_signTypedData_v4`);
 		} else if (args.method === 'eth_signTypedData_v4') {
 			const [address, message] = args.params;
 			const account = getAccount(address);
@@ -133,6 +126,9 @@ export class EIP1193LocalSigner implements EIP1193SignerProvider {
 	}
 }
 
+// eth_signTypedData (v1) stays listed although the local signer refuses it: routing it to the signer
+// gives a clear error, where passing it through would let the wrapped provider sign for an account
+// that is meant to be signed for locally.
 const signingRequests = [
 	'eth_sign',
 	'eth_signTransaction',
@@ -140,6 +136,31 @@ const signingRequests = [
 	'eth_signTypedData_v4',
 	'eth_signTypedData',
 ];
+
+// Where each signing method carries the signing address. The positions differ per method, so the
+// address cannot be read from the first string parameter: personal_sign is [message, address] and
+// eth_signTypedData (v1) is [typedData, address], the reverse of eth_sign and eth_signTypedData_v4.
+function signingAddress(args: EIP1193GenericRequest): `0x${string}` {
+	const params = (Array.isArray(args.params) ? args.params : []) as unknown[];
+	let address: unknown;
+	switch (args.method) {
+		case 'eth_sign':
+		case 'eth_signTypedData_v4':
+			address = params[0];
+			break;
+		case 'personal_sign':
+		case 'eth_signTypedData':
+			address = params[1];
+			break;
+		case 'eth_signTransaction':
+			address = (params[0] as {from?: unknown} | undefined)?.from;
+			break;
+	}
+	if (typeof address !== 'string') {
+		throw new Error(`signing request not supported: ${args.method}`);
+	}
+	return address as `0x${string}`;
+}
 
 // The provider is the fallback signer for unregistered accounts, so it must serve the signer methods.
 // Both the wallet surface and the node surfaces do.
@@ -153,20 +174,12 @@ export function wrapProviderWithMultipleSigners<T extends EIP1193SignerProvider>
 
 	function request(args: EIP1193GenericRequest): Promise<any> {
 		if (signingRequests.indexOf(args.method) >= 0) {
-			const request = args as RequestType<SignerMethodsList>;
-			let address: `0x${string}`;
-			if (typeof request.params[0] === 'string') {
-				address = request.params[0] as `0x${string}`;
-			} else if ('from' in request.params[0]) {
-				address = request.params[0].from;
-			} else {
-				throw new Error(`signing request not supported: ${args.method}`);
-			}
+			const address = signingAddress(args);
 			const signer = accounts[address];
 			if (!signer) {
 				throw new Error(`no signer registered for ${address}`);
 			}
-			return signer.request(request as any);
+			return signer.request(args as any);
 		}
 		return provider.request(args as any);
 	}
