@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       eip-1193:
-        specifier: ^0.7.0
-        version: 0.7.0
+        specifier: ^0.7.4
+        version: 0.7.4
       viem:
         specifier: ^2.23.12
         version: 2.23.12(typescript@5.8.2)
@@ -561,8 +561,8 @@ packages:
   eastasianwidth@0.2.0:
     resolution: {integrity: sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==}
 
-  eip-1193@0.7.0:
-    resolution: {integrity: sha512-Xeq6sfTPuedLQ6pmNF42UjvmLjtB4utSBCekkAwe+AwrnbgdB6fhY9BZrQYFvb/DIUzlf1wBOdV0iWIT9A0/3g==}
+  eip-1193@0.7.4:
+    resolution: {integrity: sha512-NYtXIpM8dwiMmeJjdRkCzIdpTXU7ANdeO4fW+SpZE3Pia4ljnfXCyY40TZrQ5iJtaUMcJ1aSUsKxtdh0iwFiyw==}
 
   emoji-regex@8.0.0:
     resolution: {integrity: sha512-MSjYzcWNOA0ewAHpz0MxpYFvwg6yjy1NG3xteoqz644VCo/RPgnr1/GGt+ic3iJTzQ8Eu3TdM14SawnVUmGE6A==}
@@ -1466,7 +1466,7 @@ snapshots:
 
   eastasianwidth@0.2.0: {}
 
-  eip-1193@0.7.0: {}
+  eip-1193@0.7.4: {}
 
   emoji-regex@8.0.0: {}
 
