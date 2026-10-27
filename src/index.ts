@@ -112,7 +112,10 @@ export class EIP1193LocalSigner implements EIP1193SignerProvider {
 			// (eip-1193 >= 0.7.4) and sent: the legacy V1 payload is used by no one, viem included.
 			// The typed data may come as MetaMask's JSON string or as the object.
 			const [address, typedData] = args.params;
-			const account = getAccount(address);
+			if (typeof address !== 'string') {
+				throw new Error(`${args.method} expects [address, typedData]`);
+			}
+			const account = getAccount(address as `0x${string}`);
 			const message = typeof typedData === 'string' ? JSON.parse(typedData) : typedData;
 			return account.signTypedData(message as TypedDataDefinition<Record<string, unknown>, any>);
 		} else if (args.method === 'personal_sign') {
@@ -153,7 +156,7 @@ function signingAddress(args: EIP1193GenericRequest): `0x${string}` {
 			break;
 	}
 	if (typeof address !== 'string') {
-		throw new Error(`signing request not supported: ${args.method}`);
+		throw new Error(`cannot find the signing address of ${args.method}`);
 	}
 	return address as `0x${string}`;
 }
@@ -161,7 +164,7 @@ function signingAddress(args: EIP1193GenericRequest): `0x${string}` {
 // The provider is the fallback signer for unregistered accounts, so it must serve the signer methods.
 // Both the wallet surface and the node surfaces do.
 export function wrapProviderWithMultipleSigners<T extends EIP1193SignerProvider>(
-	provider: T
+	provider: T,
 ): {provider: T; registerAccount(address: `0x${string}`, signer: EIP1193SignerProvider): void} {
 	const accounts: {[address: `0x${string}`]: EIP1193SignerProvider} = {};
 	function registerAccount(address: `0x${string}`, signer?: EIP1193SignerProvider) {
@@ -198,7 +201,7 @@ export function wrapProviderWithMultipleSigners<T extends EIP1193SignerProvider>
 // works, whether a wallet, a JSON-RPC node or an HTTP node.
 export function wrapProviderWithLocalSigner<T extends RequestRPC<WriteMethods>>(
 	provider: T,
-	prv: `0x${string}` | {mnemonic: string; num: number} | EIP1193LocalSigner
+	prv: `0x${string}` | {mnemonic: string; num: number} | EIP1193LocalSigner,
 ): T {
 	const signer = prv instanceof EIP1193LocalSigner ? prv : new EIP1193LocalSigner(prv);
 	function request(args: EIP1193GenericRequest): Promise<any> {

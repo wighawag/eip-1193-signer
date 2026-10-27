@@ -1,4 +1,6 @@
 allowBuilds:
   esbuild: false
+# eip-1193 0.7.4 was installed on its release day; drop this once it is older than
+# pnpm's minimumReleaseAge.
 minimumReleaseAgeExclude:
   - eip-1193@0.7.4

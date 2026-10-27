@@ -30,3 +30,36 @@ for (const method of ['eth_signTypedData', 'eth_signTypedData_v4']) {
 		});
 	}
 }
+
+test('a MetaMask-shaped JSON string (EIP712Domain listed, hex chainId) signs directly on the local signer', async () => {
+	const signer = new EIP1193LocalSigner(pk);
+	const address = signer.addresses[0];
+	const metamaskShaped = {
+		types: {
+			EIP712Domain: [
+				{name: 'name', type: 'string'},
+				{name: 'chainId', type: 'uint256'},
+			],
+			Mail: [{name: 'x', type: 'string'}],
+		},
+		primaryType: 'Mail',
+		domain: {name: 'T', chainId: '0x1'},
+		message: {x: 'hi'},
+	};
+	const signature = await signer.request({
+		method: 'eth_signTypedData',
+		params: [address, JSON.stringify(metamaskShaped)],
+	});
+	assert.equal(await verifyTypedData({address, ...typedData, signature}), true);
+});
+
+test('the legacy V1 order is refused with a message naming the expected shape', async () => {
+	const signer = new EIP1193LocalSigner(pk);
+	await assert.rejects(
+		signer.request({
+			method: 'eth_signTypedData',
+			params: [[{name: 'x', type: 'string', value: 'hi'}], signer.addresses[0]],
+		}),
+		/expects \[address, typedData\]/,
+	);
+});
