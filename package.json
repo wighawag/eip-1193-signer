@@ -52,12 +52,13 @@
 		"typescript": "^5.8.2"
 	},
 	"dependencies": {
-		"eip-1193": "^0.7.0",
+		"eip-1193": "^0.7.4",
 		"viem": "^2.23.12"
 	},
 	"scripts": {
 		"build": "rimraf dist && pkgroll --sourcemap",
 		"dev": "pkgroll --watch",
-		"release:ci": "pnpm build && pnpm changeset publish"
+		"release:ci": "pnpm test && pnpm changeset publish",
+		"test": "pnpm build && node --test test/*.test.mjs"
 	}
 }

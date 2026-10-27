@@ -107,14 +107,16 @@ export class EIP1193LocalSigner implements EIP1193SignerProvider {
 			} else {
 				throw new Error(`unlnown transaction type: ${txData.type}`);
 			}
-		} else if (args.method === 'eth_signTypedData') {
-			// eth_signTypedData is v1: [typedData, address] with a flat {name, type, value}[] payload and
-			// its own hashing scheme, which viem does not implement. Refuse it explicitly rather than
-			// fall through to the generic error, so the caller knows to use v4.
-			throw new Error(`eth_signTypedData (v1) is not supported by the local signer, use eth_signTypedData_v4`);
-		} else if (args.method === 'eth_signTypedData_v4') {
-			const [address, message] = args.params;
-			const account = getAccount(address);
+		} else if (args.method === 'eth_signTypedData' || args.method === 'eth_signTypedData_v4') {
+			// Both are [address, typedData]. eth_signTypedData is signed as v4, which is how it is typed
+			// (eip-1193 >= 0.7.4) and sent: the legacy V1 payload is used by no one, viem included.
+			// The typed data may come as MetaMask's JSON string or as the object.
+			const [address, typedData] = args.params;
+			if (typeof address !== 'string') {
+				throw new Error(`${args.method} expects [address, typedData]`);
+			}
+			const account = getAccount(address as `0x${string}`);
+			const message = typeof typedData === 'string' ? JSON.parse(typedData) : typedData;
 			return account.signTypedData(message as TypedDataDefinition<Record<string, unknown>, any>);
 		} else if (args.method === 'personal_sign') {
 			const [message, address] = args.params; // reverse
@@ -126,9 +128,6 @@ export class EIP1193LocalSigner implements EIP1193SignerProvider {
 	}
 }
 
-// eth_signTypedData (v1) stays listed although the local signer refuses it: routing it to the signer
-// gives a clear error, where passing it through would let the wrapped provider sign for an account
-// that is meant to be signed for locally.
 const signingRequests = [
 	'eth_sign',
 	'eth_signTransaction',
@@ -138,18 +137,18 @@ const signingRequests = [
 ];
 
 // Where each signing method carries the signing address. The positions differ per method, so the
-// address cannot be read from the first string parameter: personal_sign is [message, address] and
-// eth_signTypedData (v1) is [typedData, address], the reverse of eth_sign and eth_signTypedData_v4.
+// address cannot be read from the first string parameter: personal_sign is [message, address], the
+// reverse of eth_sign, eth_signTypedData and eth_signTypedData_v4.
 function signingAddress(args: EIP1193GenericRequest): `0x${string}` {
 	const params = (Array.isArray(args.params) ? args.params : []) as unknown[];
 	let address: unknown;
 	switch (args.method) {
 		case 'eth_sign':
+		case 'eth_signTypedData':
 		case 'eth_signTypedData_v4':
 			address = params[0];
 			break;
 		case 'personal_sign':
-		case 'eth_signTypedData':
 			address = params[1];
 			break;
 		case 'eth_signTransaction':
@@ -157,7 +156,7 @@ function signingAddress(args: EIP1193GenericRequest): `0x${string}` {
 			break;
 	}
 	if (typeof address !== 'string') {
-		throw new Error(`signing request not supported: ${args.method}`);
+		throw new Error(`cannot find the signing address of ${args.method}`);
 	}
 	return address as `0x${string}`;
 }
@@ -165,7 +164,7 @@ function signingAddress(args: EIP1193GenericRequest): `0x${string}` {
 // The provider is the fallback signer for unregistered accounts, so it must serve the signer methods.
 // Both the wallet surface and the node surfaces do.
 export function wrapProviderWithMultipleSigners<T extends EIP1193SignerProvider>(
-	provider: T
+	provider: T,
 ): {provider: T; registerAccount(address: `0x${string}`, signer: EIP1193SignerProvider): void} {
 	const accounts: {[address: `0x${string}`]: EIP1193SignerProvider} = {};
 	function registerAccount(address: `0x${string}`, signer?: EIP1193SignerProvider) {
@@ -202,7 +201,7 @@ export function wrapProviderWithMultipleSigners<T extends EIP1193SignerProvider>
 // works, whether a wallet, a JSON-RPC node or an HTTP node.
 export function wrapProviderWithLocalSigner<T extends RequestRPC<WriteMethods>>(
 	provider: T,
-	prv: `0x${string}` | {mnemonic: string; num: number} | EIP1193LocalSigner
+	prv: `0x${string}` | {mnemonic: string; num: number} | EIP1193LocalSigner,
 ): T {
 	const signer = prv instanceof EIP1193LocalSigner ? prv : new EIP1193LocalSigner(prv);
 	function request(args: EIP1193GenericRequest): Promise<any> {
